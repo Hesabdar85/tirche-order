@@ -41,6 +41,8 @@
       <input id="floor" placeholder="مثلاً سقف ۲">
       <div id="items"></div>
       <button type="button" class="add" id="addItem">+ افزودن ردیف دیگر</button>
+      <label for="photo">یا عکس لیست اندازه‌ها و تعدادها (اختیاری)</label>
+      <input id="photo" type="file" accept="image/*">
     </div>
 
     <div class="card">
@@ -63,7 +65,8 @@
   </form>
 
   <div id="done" class="card">
-    <b>سفارش شما آماده ارسال است:</b>
+    <b id="dhead">سفارش شما آماده ارسال است:</b>
+    <div class="ok" id="sent"></div>
     <pre id="txt"></pre>
     <button class="main" id="sms">ارسال با پیامک</button>
     <button class="alt" id="copy">کپی متن برای ارسال در ایتا</button>
@@ -72,7 +75,9 @@
   </div>
 </div>
 
+<script src="bale.js"></script>
 <script>
+const BALE_CHAT = 1806254531;        // چت بله مسئول فروش
 const ORDER_PHONE = "09111167903";   // شماره دریافت سفارش
 
 const fa = s => String(s).replace(/\d/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]);
@@ -121,7 +126,9 @@ $("f").onsubmit = e => {
   e.preventDefault();
   $("err").textContent = "";
   const lines = [];
+  const photo = $("photo").files[0];
   for (const it of document.querySelectorAll(".item")) {
+    if (photo && !it.querySelector(".len").value.trim() && !it.querySelector(".cnt").value.trim()) continue;
     const len = parseFloat(en(it.querySelector(".len").value).replace("/", ".").replace(",", "."));
     const cnt = parseInt(en(it.querySelector(".cnt").value), 10);
     const type = it.querySelector(".type").value;
@@ -132,6 +139,7 @@ $("f").onsubmit = e => {
     const spec = type === "تیرچه" ? ` ارتفاع ${sv}` : type === "سردرگاه" ? ` عرض ${sv}` : "";
     lines.push(`- ${type}${spec}${type !== "یونولیت" ? "، طول " + fa(len) + " متر" : ""}: ${fa(cnt)} عدد`);
   }
+  if (!lines.length && !photo) return $("err").textContent = "حداقل یک ردیف بنویسید یا عکس لیست را بگذارید.";
   const floor = $("floor").value.trim();
   const name = $("name").value.trim();
   const phone = en($("phone").value).replace(/\D/g, "");
@@ -144,16 +152,41 @@ $("f").onsubmit = e => {
   if (!/^09\d{9}$/.test(phone)) return $("err").textContent = "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.";
   if (!addr) return $("err").textContent = "آدرس محل تحویل را بنویسید.";
 
-  orderText = "سفارش جدید\n" + (floor ? `سقف: ${floor}\n` : "") + lines.join("\n") +
+  orderText = "سفارش جدید\n" + (floor ? `سقف: ${floor}\n` : "") + lines.join("\n") + (photo ? "\n(عکس لیست اندازه‌ها جداگانه ارسال شد)" : "") +
     `\nخریدار: ${name}\nموبایل خریدار: ${fa(phone)}` +
     (fname ? `\nقالب‌بند: ${fname}` : "") + (fphone ? `\nتلفن قالب‌بند: ${fa(fphone)}` : "") +
     `\nآدرس تحویل: ${addr}` +
     (note ? `\nتوضیحات: ${note}` : "");
   $("txt").textContent = orderText;
+  sendBale(orderText, photo, name, phone);
   $("f").style.display = "none";
   $("done").style.display = "block";
   window.scrollTo(0, 0);
 };
+
+let lastSent = "";
+function sendBale(text, photo, name, phone){
+  const tok = (window.BALE_TOKEN || "").trim();
+  $("sent").textContent = "";
+  $("dhead").textContent = "سفارش شما آماده ارسال است:";
+  if (!tok || text === lastSent) return;
+  const url = m => `https://tapi.bale.ai/bot${tok}/${m}`;
+  const fd = new FormData();
+  fd.append("chat_id", BALE_CHAT); fd.append("text", text);
+  fetch(url("sendMessage"), {method: "POST", mode: "no-cors", body: fd}).then(() => {
+    lastSent = text;
+    $("dhead").textContent = "✅ سفارش شما برای مجموعه کیاعلمداری ارسال شد:";
+    $("sent").textContent = "به‌زودی با شما تماس می‌گیریم. اگر خواستید، با دکمه‌های زیر هم می‌توانید بفرستید.";
+  }).catch(() => {
+    $("sent").textContent = "ارسال خودکار نشد؛ لطفاً با پیامک یا ایتا بفرستید.";
+  });
+  if (photo) {
+    const fp = new FormData();
+    fp.append("chat_id", BALE_CHAT); fp.append("photo", photo);
+    fp.append("caption", `عکس سفارش ${name} - ${fa(phone)}`);
+    fetch(url("sendPhoto"), {method: "POST", mode: "no-cors", body: fp}).catch(() => {});
+  }
+}
 
 $("sms").onclick = () => {
   const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);

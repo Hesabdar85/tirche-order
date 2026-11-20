@@ -37,6 +37,8 @@
 
   <form id="f" novalidate>
     <div class="card">
+      <label for="floor">سقف چندم</label>
+      <input id="floor" placeholder="مثلاً سقف ۲">
       <div id="items"></div>
       <button type="button" class="add" id="addItem">+ افزودن ردیف دیگر</button>
     </div>
@@ -130,6 +132,7 @@ $("f").onsubmit = e => {
     const spec = type === "تیرچه" ? ` ارتفاع ${sv}` : type === "سردرگاه" ? ` عرض ${sv}` : "";
     lines.push(`- ${type}${spec}${type !== "یونولیت" ? "، طول " + fa(len) + " متر" : ""}: ${fa(cnt)} عدد`);
   }
+  const floor = $("floor").value.trim();
   const name = $("name").value.trim();
   const phone = en($("phone").value).replace(/\D/g, "");
   const addr = $("addr").value.trim();
@@ -141,7 +144,7 @@ $("f").onsubmit = e => {
   if (!/^09\d{9}$/.test(phone)) return $("err").textContent = "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.";
   if (!addr) return $("err").textContent = "آدرس محل تحویل را بنویسید.";
 
-  orderText = "سفارش جدید\n" + lines.join("\n") +
+  orderText = "سفارش جدید\n" + (floor ? `سقف: ${floor}\n` : "") + lines.join("\n") +
     `\nخریدار: ${name}\nموبایل خریدار: ${fa(phone)}` +
     (fname ? `\nقالب‌بند: ${fname}` : "") + (fphone ? `\nتلفن قالب‌بند: ${fa(fphone)}` : "") +
     `\nآدرس تحویل: ${addr}` +

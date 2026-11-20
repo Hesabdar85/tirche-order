@@ -90,10 +90,22 @@ function addItem(){
       <option value="سردرگاه">سردرگاه</option>
       <option value="یونولیت">یونولیت</option>
     </select>
+    <div class="spec"><label class="specl">ارتفاع تیرچه</label>
+      <select class="specv"></select></div>
     <div class="row">
-      <div><label class="lenl">طول (متر)</label><input class="len" inputmode="decimal" placeholder="مثلاً ۴.۲۰ (یونولیت: اختیاری)"></div>
+      <div class="lenbox"><label class="lenl">طول (متر)</label><input class="len" inputmode="decimal" placeholder="مثلاً ۴.۲۰"></div>
       <div><label>تعداد</label><input class="cnt" inputmode="numeric" placeholder="مثلاً ۲۰"></div>
     </div>`;
+  const sel = d.querySelector(".type");
+  const upd = () => {
+    const t = sel.value, sv = d.querySelector(".specv");
+    const opts = t === "تیرچه" ? ["۲۰", "۲۵"] : t === "سردرگاه" ? ["۱۰", "۱۵"] : [];
+    d.querySelector(".spec").style.display = opts.length ? "" : "none";
+    d.querySelector(".lenbox").style.display = t === "یونولیت" ? "none" : "";
+    d.querySelector(".specl").textContent = t === "تیرچه" ? "ارتفاع تیرچه (سانتی‌متر)" : "عرض سردرگاه (سانتی‌متر)";
+    sv.innerHTML = opts.map(o => `<option value="${o}">${o}</option>`).join("");
+  };
+  sel.onchange = upd; upd();
   const del = d.querySelector(".del");
   if (del) del.onclick = () => d.remove();
   $("items").appendChild(d);
@@ -114,7 +126,9 @@ $("f").onsubmit = e => {
     const hasLen = len > 0 && len < 20;
     if (type !== "یونولیت" && !hasLen) return $("err").textContent = "طول هر ردیف تیرچه یا سردرگاه را به متر بنویسید (مثلاً ۴.۲۰).";
     if (!(cnt > 0)) return $("err").textContent = "تعداد هر ردیف را بنویسید.";
-    lines.push(`- ${type}${hasLen ? " " + fa(len) + " متری" : ""}: ${fa(cnt)} عدد`);
+    const sv = it.querySelector(".specv").value;
+    const spec = type === "تیرچه" ? ` ارتفاع ${sv}` : type === "سردرگاه" ? ` عرض ${sv}` : "";
+    lines.push(`- ${type}${spec}${type !== "یونولیت" ? "، طول " + fa(len) + " متر" : ""}: ${fa(cnt)} عدد`);
   }
   const name = $("name").value.trim();
   const phone = en($("phone").value).replace(/\D/g, "");

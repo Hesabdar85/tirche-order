@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ثبت سفارش | مجموعه کیاعلمداری</title>
+<style>
+  /* شماره دریافت سفارش: فقط همین خط را عوض کنید */
+  :root{--c:#1f6f5c;--bg:#f4f6f5;--b:#d5dcd9}
+  *{box-sizing:border-box;font-family:Vazirmatn,Tahoma,"Segoe UI",sans-serif}
+  body{margin:0;background:var(--bg);color:#222;font-size:16px}
+  .wrap{max-width:520px;margin:0 auto;padding:16px}
+  h1{font-size:20px;color:var(--c);margin:8px 0 4px}
+  p.sub{margin:0 0 16px;color:#555;font-size:14px}
+  .card{background:#fff;border:1px solid var(--b);border-radius:12px;padding:14px;margin-bottom:12px}
+  label{display:block;font-size:14px;margin:10px 0 4px;color:#333}
+  input,select,textarea{width:100%;padding:10px;border:1px solid var(--b);border-radius:8px;font-size:16px;background:#fff}
+  textarea{min-height:70px;resize:vertical}
+  .item{border:1px dashed var(--b);border-radius:10px;padding:10px;margin-bottom:10px;position:relative}
+  .row{display:flex;gap:8px}
+  .row>div{flex:1}
+  .del{position:absolute;left:8px;top:6px;border:none;background:none;color:#b33;font-size:14px;cursor:pointer}
+  button.main,button.alt{width:100%;padding:13px;border-radius:10px;font-size:17px;border:none;cursor:pointer;margin-top:8px}
+  button.main{background:var(--c);color:#fff}
+  button.alt{background:#fff;color:var(--c);border:1px solid var(--c)}
+  .add{background:none;border:none;color:var(--c);font-size:15px;cursor:pointer;padding:4px 0}
+  .err{color:#b33;font-size:14px;min-height:18px;margin-top:6px}
+  #done{display:none}
+  pre{white-space:pre-wrap;background:#f7f7f7;border-radius:8px;padding:10px;font-size:14px;line-height:1.8}
+  .ok{color:var(--c);font-size:14px;min-height:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ثبت سفارش | مجموعه کیاعلمداری</h1>
+  <p class="sub">تیرچه، سردرگاه و یونولیت. این اطلاعات برای پیش‌فاکتور هم لازم است.</p>
+
+  <form id="f" novalidate>
+    <div class="card">
+      <div id="items"></div>
+      <button type="button" class="add" id="addItem">+ افزودن ردیف دیگر</button>
+    </div>
+
+    <div class="card">
+      <label for="name">نام و نام خانوادگی خریدار</label>
+      <input id="name" autocomplete="name">
+      <label for="phone">شماره موبایل خریدار</label>
+      <input id="phone" inputmode="numeric" placeholder="09xxxxxxxxx" autocomplete="tel">
+      <label for="fname">نام و نام خانوادگی قالب‌بند (اگر دارید)</label>
+      <input id="fname">
+      <label for="fphone">شماره تماس قالب‌بند (اگر دارید)</label>
+      <input id="fphone" inputmode="numeric" placeholder="09xxxxxxxxx">
+      <label for="addr">آدرس دقیق محل تحویل تیرچه</label>
+      <textarea id="addr" placeholder="شهر، محله، خیابان..."></textarea>
+      <label for="note">توضیحات (اختیاری)</label>
+      <textarea id="note" placeholder="مثلاً زمان تحویل یا سؤال"></textarea>
+    </div>
+
+    <div class="err" id="err"></div>
+    <button type="submit" class="main">ثبت سفارش</button>
+  </form>
+
+  <div id="done" class="card">
+    <b>سفارش شما آماده ارسال است:</b>
+    <pre id="txt"></pre>
+    <button class="main" id="sms">ارسال با پیامک</button>
+    <button class="alt" id="copy">کپی متن برای ارسال در ایتا</button>
+    <div class="ok" id="ok"></div>
+    <button class="add" id="back">ویرایش سفارش</button>
+  </div>
+</div>
+
+<script>
+const ORDER_PHONE = "09111167903";   // شماره دریافت سفارش
+
+const fa = s => String(s).replace(/\d/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]);
+const en = s => String(s).replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+                         .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+const $ = id => document.getElementById(id);
+
+function addItem(){
+  const n = document.querySelectorAll(".item").length + 1;
+  const d = document.createElement("div");
+  d.className = "item";
+  d.innerHTML = `
+    ${n > 1 ? '<button type="button" class="del">حذف</button>' : ''}
+    <label>محصول</label>
+    <select class="type">
+      <option value="تیرچه">تیرچه</option>
+      <option value="سردرگاه">سردرگاه</option>
+      <option value="یونولیت">یونولیت</option>
+    </select>
+    <div class="row">
+      <div><label class="lenl">طول (متر)</label><input class="len" inputmode="decimal" placeholder="مثلاً ۴.۲۰ (یونولیت: اختیاری)"></div>
+      <div><label>تعداد</label><input class="cnt" inputmode="numeric" placeholder="مثلاً ۲۰"></div>
+    </div>`;
+  const del = d.querySelector(".del");
+  if (del) del.onclick = () => d.remove();
+  $("items").appendChild(d);
+}
+$("addItem").onclick = addItem;
+addItem();
+
+let orderText = "";
+
+$("f").onsubmit = e => {
+  e.preventDefault();
+  $("err").textContent = "";
+  const lines = [];
+  for (const it of document.querySelectorAll(".item")) {
+    const len = parseFloat(en(it.querySelector(".len").value).replace("/", ".").replace(",", "."));
+    const cnt = parseInt(en(it.querySelector(".cnt").value), 10);
+    const type = it.querySelector(".type").value;
+    const hasLen = len > 0 && len < 20;
+    if (type !== "یونولیت" && !hasLen) return $("err").textContent = "طول هر ردیف تیرچه یا سردرگاه را به متر بنویسید (مثلاً ۴.۲۰).";
+    if (!(cnt > 0)) return $("err").textContent = "تعداد هر ردیف را بنویسید.";
+    lines.push(`- ${type}${hasLen ? " " + fa(len) + " متری" : ""}: ${fa(cnt)} عدد`);
+  }
+  const name = $("name").value.trim();
+  const phone = en($("phone").value).replace(/\D/g, "");
+  const addr = $("addr").value.trim();
+  const note = $("note").value.trim();
+  const fname = $("fname").value.trim();
+  const fphone = en($("fphone").value).replace(/\D/g, "");
+  if (fphone && !/^09\d{9}$/.test(fphone)) return $("err").textContent = "شماره قالب‌بند باید ۱۱ رقم و با ۰۹ شروع شود.";
+  if (!name) return $("err").textContent = "نام را بنویسید.";
+  if (!/^09\d{9}$/.test(phone)) return $("err").textContent = "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.";
+  if (!addr) return $("err").textContent = "آدرس محل تحویل را بنویسید.";
+
+  orderText = "سفارش جدید\n" + lines.join("\n") +
+    `\nخریدار: ${name}\nموبایل خریدار: ${fa(phone)}` +
+    (fname ? `\nقالب‌بند: ${fname}` : "") + (fphone ? `\nتلفن قالب‌بند: ${fa(fphone)}` : "") +
+    `\nآدرس تحویل: ${addr}` +
+    (note ? `\nتوضیحات: ${note}` : "");
+  $("txt").textContent = orderText;
+  $("f").style.display = "none";
+  $("done").style.display = "block";
+  window.scrollTo(0, 0);
+};
+
+$("sms").onclick = () => {
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  location.href = `sms:${ORDER_PHONE}${ios ? "&" : "?"}body=${encodeURIComponent(orderText)}`;
+};
+
+$("copy").onclick = async () => {
+  try { await navigator.clipboard.writeText(orderText); }
+  catch {
+    const t = document.createElement("textarea");
+    t.value = orderText; document.body.appendChild(t); t.select();
+    document.execCommand("copy"); t.remove();
+  }
+  $("ok").textContent = `متن کپی شد. در ایتا به شماره ${fa(ORDER_PHONE)} پیام بدهید و متن را بچسبانید.`;
+};
+
+$("back").onclick = () => { $("done").style.display = "none"; $("f").style.display = "block"; };
+</script>
+</body>
+</html>

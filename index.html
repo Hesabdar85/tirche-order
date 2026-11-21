@@ -77,7 +77,7 @@
 
 <script src="bale.js"></script>
 <script>
-const BALE_CHAT = 1806254531;        // چت بله مسئول فروش
+const BALE_CHATS = [1302466892, 994262205]; // خطوط بله فروش: 09111167903 و 09114571245
 const ORDER_PHONE = "09111167903";   // شماره دریافت سفارش
 
 const fa = s => String(s).replace(/\d/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]);
@@ -171,9 +171,10 @@ function sendBale(text, photo, name, phone){
   $("dhead").textContent = "سفارش شما آماده ارسال است:";
   if (!tok || text === lastSent) return;
   const url = m => `https://tapi.bale.ai/bot${tok}/${m}`;
-  const fd = new FormData();
-  fd.append("chat_id", BALE_CHAT); fd.append("text", text);
-  fetch(url("sendMessage"), {method: "POST", mode: "no-cors", body: fd}).then(() => {
+  const sendTo = chat => { const fd = new FormData();
+    fd.append("chat_id", chat); fd.append("text", text);
+    return fetch(url("sendMessage"), {method: "POST", mode: "no-cors", body: fd}); };
+  Promise.any(BALE_CHATS.map(sendTo)).then(() => {
     lastSent = text;
     $("dhead").textContent = "✅ سفارش شما برای مجموعه کیاعلمداری ارسال شد:";
     $("sent").textContent = "به‌زودی با شما تماس می‌گیریم. اگر خواستید، با دکمه‌های زیر هم می‌توانید بفرستید.";
@@ -181,10 +182,10 @@ function sendBale(text, photo, name, phone){
     $("sent").textContent = "ارسال خودکار نشد؛ لطفاً با پیامک یا ایتا بفرستید.";
   });
   if (photo) {
-    const fp = new FormData();
-    fp.append("chat_id", BALE_CHAT); fp.append("photo", photo);
-    fp.append("caption", `عکس سفارش ${name} - ${fa(phone)}`);
-    fetch(url("sendPhoto"), {method: "POST", mode: "no-cors", body: fp}).catch(() => {});
+    BALE_CHATS.forEach(chat => { const fp = new FormData();
+      fp.append("chat_id", chat); fp.append("photo", photo);
+      fp.append("caption", `عکس سفارش ${name} - ${fa(phone)}`);
+      fetch(url("sendPhoto"), {method: "POST", mode: "no-cors", body: fp}).catch(() => {}); });
   }
 }
 
